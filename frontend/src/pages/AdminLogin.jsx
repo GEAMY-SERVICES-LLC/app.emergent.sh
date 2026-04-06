@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock, CircleNotch } from "@phosphor-icons/react";
 import axios from "axios";
@@ -15,12 +15,12 @@ const AdminLogin = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e) => {
+  const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
 
     if (!formData.email || !formData.password) {
@@ -31,9 +31,11 @@ const AdminLogin = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`${API}/admin/login`, formData);
-      localStorage.setItem("adminToken", response.data.token);
-      localStorage.setItem("adminEmail", response.data.email);
+      const response = await axios.post(`${API}/admin/login`, formData, {
+        withCredentials: true // Enable cookies
+      });
+      // Store only email in sessionStorage (non-sensitive)
+      sessionStorage.setItem("adminEmail", response.data.email);
       toast.success("Login successful!");
       navigate("/admin");
     } catch (error) {
@@ -42,7 +44,7 @@ const AdminLogin = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [formData, navigate]);
 
   return (
     <div className="min-h-screen bg-[#040810] grid-texture flex items-center justify-center p-6">

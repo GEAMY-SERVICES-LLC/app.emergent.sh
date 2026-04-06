@@ -1,5 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { List, X } from "@phosphor-icons/react";
+
+const NAV_LINKS = [
+  { href: "#services", label: "Services" },
+  { href: "#about", label: "About" },
+  { href: "#terms", label: "Terms" },
+  { href: "#contact", label: "Contact" },
+];
 
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -13,21 +20,18 @@ const Navigation = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navLinks = [
-    { href: "#services", label: "Services" },
-    { href: "#about", label: "About" },
-    { href: "#terms", label: "Terms" },
-    { href: "#contact", label: "Contact" },
-  ];
-
-  const scrollToSection = (e, href) => {
+  const scrollToSection = useCallback((e, href) => {
     e.preventDefault();
     const element = document.querySelector(href);
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
       setIsMobileMenuOpen(false);
     }
-  };
+  }, []);
+
+  const toggleMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen((prev) => !prev);
+  }, []);
 
   return (
     <nav
@@ -40,7 +44,6 @@ const Navigation = () => {
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
           <a
             href="/"
             className="font-heading text-xl font-bold text-white tracking-tight"
@@ -49,9 +52,8 @@ const Navigation = () => {
             GEAMY<span className="text-[#00d4ff]">.</span>
           </a>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
+            {NAV_LINKS.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
@@ -72,21 +74,19 @@ const Navigation = () => {
             </a>
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             className="md:hidden text-white p-2"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onClick={toggleMobileMenu}
             data-testid="mobile-menu-toggle"
           >
             {isMobileMenuOpen ? <X size={24} /> : <List size={24} />}
           </button>
         </div>
 
-        {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-white/10 py-4" data-testid="mobile-menu">
             <div className="flex flex-col gap-4">
-              {navLinks.map((link) => (
+              {NAV_LINKS.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
