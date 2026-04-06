@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, BackgroundTasks, status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, BackgroundTasks, status, Response, Request, Cookie
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -122,6 +122,52 @@ class AnalyticsEventCreate(BaseModel):
 
 # ==================== EMAIL SERVICE ====================
 
+def _build_email_html(submission: ContactSubmission) -> str:
+    """Build HTML email template for contact submission."""
+    return f"""
+    <html>
+    <head>
+        <style>
+            body {{ font-family: 'DM Mono', monospace; color: #333; background: #f5f5f5; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; background: white; }}
+            .header {{ background: #040810; color: #00d4ff; padding: 20px; text-align: center; }}
+            .field {{ margin: 15px 0; padding: 10px; background: #f9f9f9; }}
+            .label {{ font-weight: bold; color: #040810; }}
+            .footer {{ margin-top: 30px; padding: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; text-align: center; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2>New Contact Form Submission</h2>
+                <p>Geamy Services LLC</p>
+            </div>
+            <div class="field"><span class="label">Name:</span> {submission.name}</div>
+            <div class="field"><span class="label">Email:</span> {submission.email}</div>
+            <div class="field"><span class="label">Phone:</span> {submission.phone or 'Not provided'}</div>
+            <div class="field"><span class="label">Service Needed:</span> {submission.service}</div>
+            <div class="field"><span class="label">Message:</span><p>{submission.message}</p></div>
+            <div class="footer"><p>This email was sent automatically from geamyservices.com</p></div>
+        </div>
+    </body>
+    </html>
+    """
+
+def _create_graph_message(submission: ContactSubmission, html_body: str):
+    """Create Microsoft Graph message object."""
+    message = Message()
+    message.subject = f"New Contact: {submission.service} - {submission.name}"
+    message.body = ItemBody()
+    message.body.content_type = BodyType.Html
+    message.body.content = html_body
+    
+    to_recipient = Recipient()
+    to_recipient.email_address = EmailAddress()
+    to_recipient.email_address.address = settings.recipient_email
+    message.to_recipients = [to_recipient]
+    
+    return message
+
 async def get_graph_client():
     """Initialize and return an authenticated GraphServiceClient."""
     if not GRAPH_AVAILABLE:
@@ -141,7 +187,7 @@ async def get_graph_client():
         logger.error(f"Failed to initialize GraphServiceClient: {e}")
         return None
 
-async def send_contact_email(submission: ContactSubmission):
+async def send_contact_email(submission: ContactSubmission) -> bool:
     """Send email notification for contact form submission."""
     graph_client = await get_graph_client()
     
@@ -150,58 +196,8 @@ async def send_contact_email(submission: ContactSubmission):
         return False
     
     try:
-        html_body = f"""
-        <html>
-        <head>
-            <style>
-                body {{ font-family: 'DM Mono', monospace; color: #333; background: #f5f5f5; }}
-                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; background: white; }}
-                .header {{ background: #040810; color: #00d4ff; padding: 20px; text-align: center; }}
-                .field {{ margin: 15px 0; padding: 10px; background: #f9f9f9; }}
-                .label {{ font-weight: bold; color: #040810; }}
-                .footer {{ margin-top: 30px; padding: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; text-align: center; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h2>New Contact Form Submission</h2>
-                    <p>Geamy Services LLC</p>
-                </div>
-                <div class="field">
-                    <span class="label">Name:</span> {submission.name}
-                </div>
-                <div class="field">
-                    <span class="label">Email:</span> {submission.email}
-                </div>
-                <div class="field">
-                    <span class="label">Phone:</span> {submission.phone or 'Not provided'}
-                </div>
-                <div class="field">
-                    <span class="label">Service Needed:</span> {submission.service}
-                </div>
-                <div class="field">
-                    <span class="label">Message:</span>
-                    <p>{submission.message}</p>
-                </div>
-                <div class="footer">
-                    <p>This email was sent automatically from geamyservices.com</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        """
-        
-        message = Message()
-        message.subject = f"New Contact: {submission.service} - {submission.name}"
-        message.body = ItemBody()
-        message.body.content_type = BodyType.Html
-        message.body.content = html_body
-        
-        to_recipient = Recipient()
-        to_recipient.email_address = EmailAddress()
-        to_recipient.email_address.address = settings.recipient_email
-        message.to_recipients = [to_recipient]
+        html_body = _build_email_html(submission)
+        message = _create_graph_message(submission, html_body)
         
         request_body = SendMailPostRequestBody()
         request_body.message = message
@@ -236,12 +232,24 @@ def verify_token(token: str) -> Optional[str]:
     except jwt.InvalidTokenError:
         return None
 
-async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Get current admin user from token."""
-    if not credentials:
+async def get_current_admin(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    admin_token: Optional[str] = Cookie(default=None)
+):
+    """Get current admin user from token (cookie or header)."""
+    token = None
+    
+    # Try cookie first, then Authorization header
+    if admin_token:
+        token = admin_token
+    elif credentials:
+        token = credentials.credentials
+    
+    if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    email = verify_token(credentials.credentials)
+    email = verify_token(token)
     if not email:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
@@ -337,8 +345,8 @@ async def track_analytics(data: AnalyticsEventCreate):
 # ==================== ADMIN AUTH ROUTES ====================
 
 @api_router.post("/admin/login")
-async def admin_login(data: AdminLogin):
-    """Admin login."""
+async def admin_login(data: AdminLogin, response: Response):
+    """Admin login with httpOnly cookie."""
     admin = await db.admins.find_one({"email": data.email}, {"_id": 0})
     
     if not admin:
@@ -349,11 +357,26 @@ async def admin_login(data: AdminLogin):
     
     token = create_token(data.email)
     
+    # Set httpOnly cookie for security
+    response.set_cookie(
+        key="admin_token",
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=86400  # 24 hours
+    )
+    
     return {
-        "token": token,
         "email": data.email,
         "message": "Login successful"
     }
+
+@api_router.post("/admin/logout")
+async def admin_logout(response: Response):
+    """Admin logout - clear cookie."""
+    response.delete_cookie(key="admin_token")
+    return {"message": "Logged out successfully"}
 
 @api_router.get("/admin/me")
 async def get_admin_profile(admin: dict = Depends(get_current_admin)):

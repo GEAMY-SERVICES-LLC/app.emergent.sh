@@ -1,60 +1,59 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { MapPin } from "@phosphor-icons/react";
+
+const TERMINAL_LINES = [
+  { id: "cmd", text: "$ ping geamyservices.com", delay: 0 },
+  { id: "ping1", text: "PING geamyservices.com (142.250.190.14)", delay: 800 },
+  { id: "seq1", text: "64 bytes: icmp_seq=1 ttl=117 time=12.4 ms", delay: 1200 },
+  { id: "seq2", text: "64 bytes: icmp_seq=2 ttl=117 time=11.8 ms", delay: 1600 },
+  { id: "blank", text: "", delay: 2000 },
+  { id: "status", text: "--- Status: ONLINE ---", delay: 2200, status: true },
+];
+
+const STATS = [
+  { id: "exp", value: "12+", label: "Years Experience" },
+  { id: "proj", value: "50+", label: "Projects Delivered" },
+  { id: "warranty", value: "30", label: "Day Work Warranty" },
+];
 
 const Hero = () => {
   const [terminalLines, setTerminalLines] = useState([]);
   const [showCursor, setShowCursor] = useState(true);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    const lines = [
-      { text: "$ ping geamyservices.com", delay: 0 },
-      { text: "PING geamyservices.com (142.250.190.14)", delay: 800 },
-      { text: "64 bytes: icmp_seq=1 ttl=117 time=12.4 ms", delay: 1200 },
-      { text: "64 bytes: icmp_seq=2 ttl=117 time=11.8 ms", delay: 1600 },
-      { text: "", delay: 2000 },
-      { text: "--- Status: ONLINE ---", delay: 2200, status: true },
-    ];
-
-    let mounted = true;
+    mountedRef.current = true;
     
-    lines.forEach((line) => {
+    TERMINAL_LINES.forEach((line) => {
       setTimeout(() => {
-        if (mounted) {
+        if (mountedRef.current) {
           setTerminalLines((prev) => {
-            // Avoid duplicate lines
-            if (prev.some(p => p.text === line.text && p.delay === line.delay)) {
-              return prev;
-            }
+            if (prev.some(p => p.id === line.id)) return prev;
             return [...prev, line];
           });
         }
       }, line.delay);
     });
 
-    // Blinking cursor
     const cursorInterval = setInterval(() => {
-      setShowCursor((prev) => !prev);
+      if (mountedRef.current) {
+        setShowCursor((prev) => !prev);
+      }
     }, 500);
 
     return () => {
-      mounted = false;
+      mountedRef.current = false;
       clearInterval(cursorInterval);
     };
   }, []);
 
-  const scrollToSection = (e, href) => {
+  const scrollToSection = useCallback((e, href) => {
     e.preventDefault();
     const element = document.querySelector(href);
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
     }
-  };
-
-  const stats = [
-    { value: "12+", label: "Years Experience" },
-    { value: "50+", label: "Projects Delivered" },
-    { value: "30", label: "Day Work Warranty" },
-  ];
+  }, []);
 
   return (
     <section className="relative min-h-screen flex items-center pt-20" id="hero" data-testid="hero-section">
@@ -110,8 +109,8 @@ const Hero = () => {
 
             {/* Stats Bar */}
             <div className="grid grid-cols-3 gap-6 pt-8 border-t border-white/10" data-testid="stats-bar">
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center lg:text-left">
+              {STATS.map((stat) => (
+                <div key={stat.id} className="text-center lg:text-left">
                   <div className="font-heading text-3xl sm:text-4xl font-bold text-[#00d4ff]">
                     {stat.value}
                   </div>
@@ -126,7 +125,6 @@ const Hero = () => {
           {/* Right Content - Terminal Widget */}
           <div className="relative" data-testid="terminal-widget">
             <div className="terminal-window">
-              {/* Terminal Header */}
               <div className="terminal-header">
                 <div className="terminal-dot bg-red-500" />
                 <div className="terminal-dot bg-yellow-500" />
@@ -136,27 +134,19 @@ const Hero = () => {
                 </span>
               </div>
 
-              {/* Terminal Body */}
               <div className="terminal-body min-h-[200px]">
-                {terminalLines.map((line, index) => (
+                {terminalLines.map((line) => (
                   <div
-                    key={index}
-                    className={`${
-                      line.status
-                        ? "text-[#00ff88] font-bold mt-2"
-                        : "text-gray-400"
-                    }`}
+                    key={line.id}
+                    className={line.status ? "text-[#00ff88] font-bold mt-2" : "text-gray-400"}
                   >
                     {line.text}
                   </div>
                 ))}
-                {showCursor && (
-                  <span className="typing-cursor" />
-                )}
+                {showCursor && <span className="typing-cursor" />}
               </div>
             </div>
 
-            {/* Decorative elements */}
             <div className="absolute -top-4 -right-4 w-24 h-24 border border-[#00d4ff]/20 -z-10" />
             <div className="absolute -bottom-4 -left-4 w-32 h-32 border border-[#00ff88]/10 -z-10" />
           </div>
