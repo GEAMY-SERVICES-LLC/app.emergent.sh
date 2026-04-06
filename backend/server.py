@@ -38,16 +38,18 @@ db = client[os.environ['DB_NAME']]
 
 # Settings
 class Settings(BaseSettings):
-    azure_client_id: str = ""
-    azure_client_secret: str = ""
-    azure_tenant_id: str = ""
-    sender_email: str = "bot@geamyservices.com"
+    # Microsoft Graph email settings
+    ms_client_id: str = ""
+    ms_client_secret: str = ""
+    ms_tenant_id: str = ""
+    ms_from_email: str = "bot@geamyservices.com"
     recipient_email: str = "gerardo@geamyservices.com"
-    jwt_secret: str = "geamy-services-secret-key-2024"
+    # Auth settings - must be set via environment variables
+    jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
-    admin_email: str = "admin@geamyservices.com"
-    admin_password: str = "GeamyAdmin2024!"
-    
+    admin_email: str = ""
+    admin_password: str = ""
+
     class Config:
         env_file = ".env"
         extra = "ignore"
@@ -125,14 +127,14 @@ async def get_graph_client():
     if not GRAPH_AVAILABLE:
         return None
     
-    if not all([settings.azure_client_id, settings.azure_client_secret, settings.azure_tenant_id]):
+    if not all([settings.ms_client_id, settings.ms_client_secret, settings.ms_tenant_id]):
         return None
     
     try:
         credential = ClientSecretCredential(
-            tenant_id=settings.azure_tenant_id,
-            client_id=settings.azure_client_id,
-            client_secret=settings.azure_client_secret
+            tenant_id=settings.ms_tenant_id,
+            client_id=settings.ms_client_id,
+            client_secret=settings.ms_client_secret
         )
         return GraphServiceClient(credentials=credential)
     except Exception as e:
@@ -205,7 +207,7 @@ async def send_contact_email(submission: ContactSubmission):
         request_body.message = message
         request_body.save_to_sent_items = True
         
-        await graph_client.users.by_user_id(settings.sender_email).send_mail.post(request_body)
+        await graph_client.users.by_user_id(settings.ms_from_email).send_mail.post(request_body)
         logger.info(f"Email sent successfully for submission {submission.id}")
         return True
         
@@ -285,7 +287,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "Geamy Services API",
-        "graph_available": GRAPH_AVAILABLE and bool(settings.azure_client_id)
+        "graph_available": GRAPH_AVAILABLE and bool(settings.ms_client_id)
     }
 
 @api_router.post("/contact", response_model=dict, status_code=status.HTTP_202_ACCEPTED)
