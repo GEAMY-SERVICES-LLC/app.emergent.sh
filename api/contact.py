@@ -36,7 +36,7 @@ def send_email(name, email, phone, service, message):
     client_id    = _env("MS_CLIENT_ID")
     client_secret = _env("MS_CLIENT_SECRET")
     from_email   = _env("MS_FROM_EMAIL") or "bot@geamyservices.com"
-    to_email     = _env("RECIPIENT_EMAIL") or "gerardo@geamyservices.com"
+    to_email     = _env("RECIPIENT_EMAIL") or "bot@geamyservices.com"
 
     if not all([tenant_id, client_id, client_secret]):
         print("Microsoft Graph credentials not configured - email skipped")

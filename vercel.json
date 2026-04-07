@@ -13,6 +13,7 @@
   "routes": [
     { "src": "/api/contact",   "dest": "/api/contact.py" },
     { "src": "/api/analytics", "dest": "/api/analytics.py" },
+    { "src": "/api/health",    "dest": "/api/health.py" },
     { "src": "/(.*)",          "dest": "/frontend/build/index.html" }
   ]
 }
