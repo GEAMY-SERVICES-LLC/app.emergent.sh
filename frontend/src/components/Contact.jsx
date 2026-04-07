@@ -58,6 +58,9 @@ const Contact = () => {
     try {
       const response = await axios.post(`${API}/contact`, formData);
       toast.success(response.data.message || "Message sent successfully!");
+      if (response.data.email_sent === false) {
+        toast.info("Note: email notification could not be sent. Please also email us directly at bot@geamyservices.com");
+      }
       setFormData(INITIAL_FORM);
     } catch (error) {
       console.error("Contact form error:", error);
