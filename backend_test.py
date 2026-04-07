@@ -1,6 +1,7 @@
 import requests
 import sys
 import json
+import os
 from datetime import datetime
 
 class GeamyServicesAPITester:
@@ -112,7 +113,7 @@ class GeamyServicesAPITester:
         """Test admin login"""
         login_data = {
             "email": "admin@geamyservices.com",
-            "password": "GeamyAdmin2024!"
+            "password": os.environ.get("TEST_ADMIN_PASSWORD", "")
         }
         
         success, response = self.run_test(

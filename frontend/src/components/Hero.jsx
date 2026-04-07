@@ -63,7 +63,6 @@ const Hero = () => {
           <div className="space-y-8">
             {/* Availability Badge */}
             <div className="inline-flex items-center gap-3 glass-panel px-4 py-2" data-testid="availability-badge">
-              <span className="status-dot" />
               <span className="font-mono text-sm text-gray-400">
                 Available for new clients
               </span>
@@ -71,6 +70,7 @@ const Hero = () => {
                 <MapPin size={14} weight="fill" />
                 Miami, FL
               </span>
+              <span className="status-dot" />
             </div>
 
             {/* Headline */}
