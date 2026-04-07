@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { API_BASE as API } from '@/utils/apiConfig';
+const API = "/api";
 
 const SERVICES = [
   "Network Infrastructure",
@@ -47,7 +47,7 @@ const Contact = () => {
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.email || !formData.service || !formData.message) {
       toast.error("Please fill in all required fields");
       return;
@@ -58,9 +58,6 @@ const Contact = () => {
     try {
       const response = await axios.post(`${API}/contact`, formData);
       toast.success(response.data.message || "Message sent successfully!");
-      if (response.data.email_sent === false) {
-        toast.info("Note: email notification could not be sent. Please also email us directly at bot@geamyservices.com");
-      }
       setFormData(INITIAL_FORM);
     } catch (error) {
       console.error("Contact form error:", error);
