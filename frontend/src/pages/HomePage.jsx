@@ -8,8 +8,7 @@ import Terms from "@/components/Terms";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API_BASE as API } from '@/utils/apiConfig';
 
 const HomePage = () => {
   const hasTracked = useRef(false);

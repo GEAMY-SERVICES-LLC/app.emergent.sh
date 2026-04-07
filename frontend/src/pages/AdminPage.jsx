@@ -8,8 +8,7 @@ import AnalyticsCards from "@/components/admin/AnalyticsCards";
 import ContactsTable from "@/components/admin/ContactsTable";
 import ContactDetailDialog from "@/components/admin/ContactDetailDialog";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API_BASE as API } from '@/utils/apiConfig';
 
 const AdminPage = () => {
   const navigate = useNavigate();

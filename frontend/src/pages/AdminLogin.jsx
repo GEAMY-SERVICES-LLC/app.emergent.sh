@@ -4,8 +4,7 @@ import { Lock, CircleNotch } from "@phosphor-icons/react";
 import axios from "axios";
 import { toast } from "sonner";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API_BASE as API } from '@/utils/apiConfig';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
