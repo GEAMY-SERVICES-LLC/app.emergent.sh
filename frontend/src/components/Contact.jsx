@@ -10,8 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API_BASE as API } from '@/utils/apiConfig';
 
 const SERVICES = [
   "Network Infrastructure",
